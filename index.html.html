@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Penguin Jump — Times Tables 11–19</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #0a1628;
+    color: white;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+  }
+
+  #ui {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #score-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+  }
+
+  #score-bar span {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.3rem;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  #question-box {
+    position: absolute;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 14px 36px;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  #question-text {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 2.4rem;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(100,200,255,0.8);
+  }
+
+  #answer-buttons {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    pointer-events: all;
+  }
+
+  .ans-btn {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.4rem;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    min-width: 80px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+
+  .ans-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+  .ans-btn:active { transform: translateY(1px); }
+
+  .ans-btn:nth-child(1) { background: #ff6b6b; color: white; }
+  .ans-btn:nth-child(2) { background: #ffd93d; color: #333; }
+  .ans-btn:nth-child(3) { background: #6bcb77; color: white; }
+  .ans-btn:nth-child(4) { background: #4d96ff; color: white; }
+
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(10,22,40,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    pointer-events: all;
+    z-index: 10;
+  }
+
+  #overlay h1 {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 3.5rem;
+    color: #4d96ff;
+    text-shadow: 0 0 30px rgba(77,150,255,0.6);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { text-shadow: 0 0 20px rgba(77,150,255,0.5); }
+    50% { text-shadow: 0 0 40px rgba(77,150,255,1); }
+  }
+
+  #overlay p {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  #overlay .big-score {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 2rem;
+    color: #ffd93d;
+  }
+
+  .play-btn {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.6rem;
+    padding: 16px 48px;
+    background: linear-gradient(135deg, #4d96ff, #6bcb77);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 25px rgba(77,150,255,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    pointer-events: all;
+  }
+  .play-btn:hover { transform: scale(1.05); box-shadow: 0 10px 35px rgba(77,150,255,0.7); }
+
+  #table-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    max-width: 400px;
+  }
+
+  .table-chip {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1rem;
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    pointer-events: all;
+  }
+  .table-chip.selected {
+    background: #4d96ff;
+    border-color: #4d96ff;
+    box-shadow: 0 0 15px rgba(77,150,255,0.5);
+  }
+
+  #feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 3rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  #feedback.show { opacity: 1; animation: feedbackPop 0.6s forwards; }
+  @keyframes feedbackPop {
+    0% { transform: translate(-50%,-50%) scale(0.5); opacity: 1; }
+    60% { transform: translate(-50%,-80%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%,-100%) scale(1); opacity: 0; }
+  }
+
+
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="bg"></canvas>
+  <div id="ui">
+    <div id="score-bar">
+      <span>🐧 Penguin Jump</span>
+      <span id="score-display">Score: 0</span>
+      <span id="streak-display">🔥 0</span>
+    </div>
+  
+    <div id="question-box"><div id="question-text">13 × 1 = ?</div></div>
+    <div id="answer-buttons"></div>
+    <div id="feedback">✅</div>
+  </div>
+  <div id="overlay">
+    <h1>🐧 Penguin Jump</h1>
+    <p>Practice your <strong>11–19 times tables</strong>! Answer correctly to make your penguin jump further.</p>
+    <div style="color:rgba(255,255,255,0.6);font-size:0.95rem">Pick your tables:</div>
+    <div id="table-select"></div>
+    <button class="play-btn" onclick="startGame()">Let's Go! 🚀</button>
+  </div>
+</div>
+
+<script>
+// ---- Canvas background ----
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ---- Game state ----
+let score = 0, streak = 0, questionsAnswered = 0;
+let currentQ = null;
+let selectedTables = [11,12,13,14,15,16,17,18,19];
+let gameActive = false;
+
+// Penguin
+let penguin = { x: 0, y: 0, vy: 0, jumping: false, frame: 0 };
+let icebergs = [];
+let penguinX = 120;
+let bgOffset = 0;
+let targetBgOffset = 0;
+
+// ---- Table chips ----
+const tableSelect = document.getElementById('table-select');
+for (let t = 11; t <= 19; t++) {
+  const chip = document.createElement('div');
+  chip.className = 'table-chip selected';
+  chip.textContent = `×${t}`;
+  chip.dataset.t = t;
+  chip.onclick = () => {
+    chip.classList.toggle('selected');
+    const idx = selectedTables.indexOf(t);
+    if (idx >= 0) selectedTables.splice(idx,1);
+    else selectedTables.push(t);
+  };
+  tableSelect.appendChild(chip);
+}
+
+// ---- Question generator ----
+let questionPool = [];
+function refillPool(tables) {
+  questionPool = [];
+  const mults = [3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19];
+  // Random frequency: each combo gets 1-3 random appearances
+  tables.forEach(t => mults.forEach(b => {
+    const freq = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < freq; i++) questionPool.push({a:t, b});
+  }));
+  // shuffle
+  for(let i=questionPool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [questionPool[i],questionPool[j]]=[questionPool[j],questionPool[i]];
+  }
+}
+
+function genQuestion() {
+  const tables = selectedTables.length > 0 ? selectedTables : [11,12,13,14,15,16,17,18,19];
+  if (questionPool.length === 0) refillPool(tables);
+  const {a, b} = questionPool.pop();
+  const answer = a*b;
+  // Generate 3 HARD wrong answers — all nearby multiples of a or b, very close to correct answer
+  const wrongs = new Set();
+  const candidates = new Set();
+
+  // Vary first number by ±1, ±2
+  for (const da of [-2,-1,1,2]) {
+    const na = a + da;
+    if (na > 0) candidates.add(na * b);
+  }
+  // Vary second number by ±1, ±2
+  for (const db of [-2,-1,1,2]) {
+    const nb = b + db;
+    if (nb > 0) candidates.add(a * nb);
+  }
+
+  candidates.delete(answer);
+  // Sort by closeness to correct answer — pick the 3 most confusable
+  const pool = [...candidates].filter(v => v > 0);
+  pool.sort((x, y) => Math.abs(x - answer) - Math.abs(y - answer));
+
+  for (const w of pool) {
+    if (wrongs.size >= 3) break;
+    wrongs.add(w);
+  }
+
+  // hard fallback
+  if (wrongs.size < 3) {
+    const fallbacks = [answer + a, answer - a, answer + b, answer - b];
+    for (const f of fallbacks) { if (wrongs.size >= 3) break; if (f !== answer && f > 0) wrongs.add(f); }
+  }
+  const options = [...wrongs, answer].sort(() => Math.random()-0.5);
+  return { a, b, answer, options };
+}
+
+// ---- Render buttons ----
+function renderButtons(q) {
+  const cont = document.getElementById('answer-buttons');
+  cont.innerHTML = '';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'ans-btn';
+    btn.textContent = opt;
+    btn.onclick = () => handleAnswer(opt, q.answer);
+    cont.appendChild(btn);
+  });
+}
+
+// ---- Handle answer ----
+function handleAnswer(chosen, correct) {
+  if (!gameActive) return;
+  const fb = document.getElementById('feedback');
+  fb.className = '';
+  void fb.offsetWidth;
+  if (chosen === correct) {
+    score += 10;
+    streak++;
+    fb.textContent = ['✅','🎉','🔥','⭐','💥'][Math.min(streak-1,4)];
+    fb.style.color = '#6bcb77';
+    // make penguin jump
+    penguin.vy = -18;
+    penguin.jumping = true;
+    targetBgOffset += 120;
+    fb.classList.add('show');
+    questionsAnswered++;
+    document.getElementById('score-display').textContent = `Score: ${score}`;
+    document.getElementById('streak-display').textContent = `🔥 ${streak}`;
+    setTimeout(() => {
+      currentQ = genQuestion();
+      document.getElementById('question-text').textContent = `${currentQ.a} × ${currentQ.b} = ?`;
+      renderButtons(currentQ);
+    }, 600);
+  } else {
+    streak = 0;
+    fb.textContent = `❌ Try again!`;
+    fb.style.color = '#ff6b6b';
+    penguin.vy = -6;
+    fb.classList.add('show');
+    // flash the wrong button red, keep all buttons active
+    document.querySelectorAll('.ans-btn').forEach(btn => {
+      if (parseInt(btn.textContent) === chosen) {
+        btn.style.background = '#ff2222';
+        btn.style.opacity = '0.5';
+        btn.disabled = true;
+        setTimeout(() => { btn.style.opacity = '1'; }, 600);
+      }
+    });
+  }
+}
+
+// ---- Drawing ----
+const GROUND = 0.72; // fraction of H
+
+function drawBackground() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,H*GROUND);
+  sky.addColorStop(0,'#0a1628');
+  sky.addColorStop(0.6,'#1a3a6e');
+  sky.addColorStop(1,'#2a5fa8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,W,H*GROUND);
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for(let i=0;i<60;i++){
+    const sx = ((i*137+bgOffset*0.05)%1)* W;
+    const sy = (i*97%1)*H*0.5;
+    const r = i%3===0?1.5:0.8;
+    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+  }
+
+  // Water
+  const water = ctx.createLinearGradient(0,H*GROUND,0,H);
+  water.addColorStop(0,'#1a4a8a');
+  water.addColorStop(1,'#0a1e3d');
+  ctx.fillStyle = water;
+  ctx.fillRect(0,H*GROUND,W,H*(1-GROUND));
+
+  // Water shimmer
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<8;i++){
+    const wx = ((i*173 - bgOffset*0.3)%W+W)%W;
+    const wy = H*GROUND + 20 + i*15;
+    ctx.beginPath(); ctx.moveTo(wx,wy); ctx.lineTo(wx+60,wy); ctx.stroke();
+  }
+}
+
+function drawIcebergs() {
+  icebergs.forEach(ice => {
+    const x = ice.x - bgOffset + penguinX;
+    const y = H*GROUND - ice.h + 10;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(x+ice.w/2, H*GROUND+6, ice.w/2, 8, 0, 0, Math.PI*2);
+    ctx.fill();
+    // iceberg body
+    const ig = ctx.createLinearGradient(x,y,x,y+ice.h);
+    ig.addColorStop(0,'#e8f8ff');
+    ig.addColorStop(0.4,'#b8e8f8');
+    ig.addColorStop(1,'#7ab8d8');
+    ctx.fillStyle = ig;
+    ctx.beginPath();
+    ctx.moveTo(x+10, y+ice.h);
+    ctx.lineTo(x, y+ice.h);
+    ctx.lineTo(x+ice.w*0.2, y+ice.h*0.3);
+    ctx.lineTo(x+ice.w*0.4, y);
+    ctx.lineTo(x+ice.w*0.6, y+ice.h*0.15);
+    ctx.lineTo(x+ice.w*0.8, y+ice.h*0.05);
+    ctx.lineTo(x+ice.w, y+ice.h*0.4);
+    ctx.lineTo(x+ice.w, y+ice.h);
+    ctx.closePath();
+    ctx.fill();
+    // shine
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(x+ice.w*0.3, y+ice.h*0.1);
+    ctx.lineTo(x+ice.w*0.45, y+ice.h*0.35);
+    ctx.lineTo(x+ice.w*0.25, y+ice.h*0.4);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawPenguin() {
+  const px = penguinX;
+  const py = penguin.y;
+  const s = 1.3;
+
+  ctx.save();
+  ctx.translate(px, py);
+
+  // Body
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 22*s, 28*s, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // White belly
+  ctx.fillStyle = '#f0f0f0';
+  ctx.beginPath();
+  ctx.ellipse(0, 6*s, 13*s, 18*s, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Eyes
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.arc(-8*s, -10*s, 5*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(8*s, -10*s, 5*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-7*s, -10*s, 3*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(9*s, -10*s, 3*s, 0, Math.PI*2); ctx.fill();
+
+  // Beak
+  ctx.fillStyle = '#ff8c00';
+  ctx.beginPath();
+  ctx.moveTo(-4*s, -4*s);
+  ctx.lineTo(4*s, -4*s);
+  ctx.lineTo(0, 2*s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Wings (animate when jumping)
+  const wingAngle = penguin.jumping ? -0.5 : 0.2;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.save();
+  ctx.translate(-22*s, 0);
+  ctx.rotate(wingAngle);
+  ctx.beginPath(); ctx.ellipse(0,0,8*s,16*s,0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(22*s, 0);
+  ctx.rotate(-wingAngle);
+  ctx.beginPath(); ctx.ellipse(0,0,8*s,16*s,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Feet
+  ctx.fillStyle = '#ff8c00';
+  ctx.beginPath(); ctx.ellipse(-8*s, 26*s, 8*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(8*s, 26*s, 8*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+// ---- Physics ----
+const GRAVITY = 0.8;
+let groundY = 0;
+
+function updatePhysics() {
+  groundY = H*GROUND - 28*1.3;
+  penguin.vy += GRAVITY;
+  penguin.y += penguin.vy;
+  if (penguin.y >= groundY) {
+    penguin.y = groundY;
+    penguin.vy = 0;
+    penguin.jumping = false;
+  }
+  bgOffset += (targetBgOffset - bgOffset) * 0.06;
+}
+
+// ---- Setup icebergs ----
+function setupIcebergs() {
+  icebergs = [];
+  for(let i=0;i<20;i++){
+    icebergs.push({ x: i*150 - 60, w: 100+Math.random()*60, h: 40+Math.random()*30 });
+  }
+}
+
+// ---- Game loop ----
+let animId;
+function loop() {
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  drawIcebergs();
+  if (gameActive) updatePhysics();
+  drawPenguin();
+  animId = requestAnimationFrame(loop);
+}
+
+// ---- Start / End ----
+function startGame() {
+  if (selectedTables.length === 0) { alert('Pick at least one times table!'); return; }
+  questionPool = [];
+  refillPool(selectedTables.length > 0 ? selectedTables : [11,12,13,14,15,16,17,18,19]);
+  score = 0; streak = 0; questionsAnswered = 0;
+  bgOffset = 0; targetBgOffset = 0;
+  gameActive = true;
+  penguin.y = H*GROUND - 28*1.3;
+  penguin.vy = 0;
+  setupIcebergs();
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('score-display').textContent = 'Score: 0';
+  document.getElementById('streak-display').textContent = '🔥 0';
+  currentQ = genQuestion();
+  document.getElementById('question-text').textContent = `${currentQ.a} × ${currentQ.b} = ?`;
+  renderButtons(currentQ);
+}
+
+function endGame() {
+  gameActive = false;
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = `
+    <h1>🎉 Done!</h1>
+    <div class="big-score">Score: ${score}</div>
+    <p>You answered ${questionsAnswered} questions.<br>Best streak: ${streak} 🔥</p>
+    <button class="play-btn" onclick="location.reload()">Play Again</button>
+  `;
+  overlay.style.display = 'flex';
+}
+
+// ---- Init ----
+penguin.x = penguinX;
+penguin.y = H*GROUND - 28*1.3;
+setupIcebergs();
+loop();
+</script>
+</body>
+</html>
